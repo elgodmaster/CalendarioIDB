@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario To-Do Interactivo</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Playfair+Display&family=Story+Script&family=Zalando+Sans+SemiExpanded:ital,wght@0,200..900;1,200..900&display=swap');
+        *{
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;             
+        }
+        body {
+            font-family: "Playfair Display", serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #month-select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .calendar th,
+        .calendar td {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #eee;
+        }
+
+        .calendar th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .calendar td {
+            cursor: pointer;
+            transition: background-color 0.3s;
+            position: relative;
+        }
+
+        .calendar td:hover {
+            background-color: #f0f0f0;
+        }
+
+        .calendar .day {
+            width: 14.28%;
+            height: 100px;
+            vertical-align: top;
+            text-align: left;
+            padding: 5px;
+        }
+        
+        /* Icono para días con tareas */
+        .task-icon {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: #007bff;
+        }
+
+        .calendar .day.today {
+            background-color: #133275;
+            color: #e7cdcd;
+            font-weight: bold;
+            text-shadow: #ffcc00 1px 0 10px;   
+            opacity: 0.6;
+            transition: 0.3s;         
+        }
+        .calendar .day.today:hover {
+            opacity: 1;
+            text-transform: scale(1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 45px;
+            height: 30px;
+            background-color: #f1f1f1;
+            color: #000;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            border-top-right-radius: 7px;
+        }
+
+        .close:hover,
+        .close:focus {
+            background-color: #e81123;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+        
+        /* Estilos para la lista de tareas en el modal */
+        #task-list-container {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        #task-select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        #new-task-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #modal-title {
+            padding-right: 45px;
+        }
+
+        #todo-title-input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        #todo-description {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            resize: none;
+        }
+
+        #save-todo {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
+        #save-todo:hover {
+            background-color: #0507a3;
+            color: #c7ccc7;
+        }
+
+        #save-todo .icon {
+            margin-right: 8px;
+        }
+
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: fixed;
+            z-index: 101;
+            left: 50%;
+            bottom: 30px;
+        }
+
+        .toast.show {
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @-webkit-keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @-webkit-keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <select id="month-select"></select>
+        <table class="calendar">
+            <thead>
+                <tr>
+                    <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
+                </tr>
+            </thead>
+            <tbody id="calendar-body"></tbody>
+        </table>
+    </div>
+
+    <div id="todo-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title"></h2>
+            
+            <div id="task-list-container" style="display: none;">
+                <label for="task-select">Tareas Guardadas:</label>
+                <select id="task-select"></select>
+                <button id="new-task-btn">Nueva Tarea</button>
+            </div>
+
+            <input type="text" id="todo-title-input" placeholder="Título de la tarea">
+            <textarea id="todo-description" rows="4" placeholder="Descripción"></textarea>
+            <button id="save-todo">
+                <span class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-floppy" viewBox="0 0 16 16">
+                        <path d="M11 2H9v3h2z"/>
+                        <path d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/>
+                    </svg>
+                </span>
+                Guardar
+            </button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+    $(document).ready(function() {
+        let db;
+        const dbName = "todoDB";
+
+        function initDB() {
+            const request = indexedDB.open(dbName, 1);
+            request.onupgradeneeded = e => {
+                db = e.target.result;
+                db.createObjectStore("todos", { keyPath: "id" });
+            };
+            request.onsuccess = e => {
+                db = e.target.result;
+                populateMonths();
+                $('#month-select').val(new Date().getMonth()).change();
+            };
+            request.onerror = e => console.error("Error IndexedDB:", e.target.errorCode);
+        }
+
+        function populateMonths() {
+            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            months.forEach((month, index) => {
+                $('#month-select').append($('<option>', { value: index, text: month }));
+            });
+        }
+
+        function generateCalendar(month) {
+            const calendarBody = $('#calendar-body').empty();
+            const year = new Date().getFullYear();
+            const firstDay = (new Date(year, month)).getDay();
+            const daysInMonth = 32 - new Date(year, month, 32).getDate();
+            const today = new Date();
+
+            let date = 1;
+            for (let i = 0; i < 6; i++) {
+                let row = $('<tr>');
+                for (let j = 0; j < 7; j++) {
+                    if (i === 0 && j < (firstDay === 0 ? 6 : firstDay - 1)) {
+                        row.append('<td>');
+                    } else if (date <= daysInMonth) {
+                        let cell = $('<td>').addClass('day').text(date);
+                        cell.data({ day: date, month: month });
+                        if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                            cell.addClass('today');
+                        }
+                        row.append(cell);
+                        date++;
+                    }
+                }
+                calendarBody.append(row);
+                if (date > daysInMonth) break;
+            }
+            loadTasksForMonth(month);
+        }
+
+        function loadTasksForMonth(month) {
+            const transaction = db.transaction(["todos"], "readonly");
+            const objectStore = transaction.objectStore("todos");
+            const request = objectStore.openCursor();
+            request.onsuccess = e => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const todo = cursor.value;
+                    const todoDate = new Date(todo.id);
+                    if (todoDate.getMonth() === month && todo.tasks && todo.tasks.length > 0) {
+                        $(`.day[data-day='${todoDate.getDate()}']`).append('<span class="task-icon">💾</span>');
+                    }
+                    cursor.continue();
+                }
+            };
+        }
+
+        $('#month-select').on('change', function() {
+            generateCalendar(parseInt($(this).val()));
+        });
+
+        $('#calendar-body').on('click', '.day', function() {
+            if (!$(this).text()) return;
+            const day = $(this).data('day');
+            const month = $(this).data('month');
+            const year = new Date().getFullYear();
+            const selectedDate = new Date(year, month, day);
+            
+            $('#modal-title').text(`Tareas para el ${selectedDate.toLocaleDateString()}`);
+            $('#todo-modal').data('date', selectedDate.getTime());
+            
+            const transaction = db.transaction(["todos"], "readonly");
+            const objectStore = transaction.objectStore("todos");
+            const request = objectStore.get(selectedDate.getTime());
+
+            request.onsuccess = function(e) {
+                const dayData = e.target.result;
+                setupModal(dayData);
+                $('#todo-modal').show();
+            };
+        });
+        
+        function setupModal(dayData) {
+            const tasks = (dayData && dayData.tasks) ? dayData.tasks : [];
+            $('#todo-modal').data('tasks', tasks);
+            $('#task-select').empty();
+
+            if (tasks.length > 0) {
+                tasks.forEach((task, index) => {
+                    $('#task-select').append($('<option>', { value: index, text: task.title || `Tarea ${index + 1}` }));
+                });
+                displayTask(0);
+                $('#task-list-container').show();
+            } else {
+                displayTask(-1); // -1 para limpiar
+                $('#task-list-container').hide();
+            }
+        }
+
+        function displayTask(index) {
+            const tasks = $('#todo-modal').data('tasks');
+            if (index >= 0 && tasks[index]) {
+                $('#todo-title-input').val(tasks[index].title);
+                $('#todo-description').val(tasks[index].description);
+                $('#save-todo').data('edit-index', index);
+            } else {
+                $('#todo-title-input').val('');
+                $('#todo-description').val('');
+                $('#save-todo').data('edit-index', -1); // -1 significa "nueva tarea"
+            }
+        }
+        
+        $('#task-select').on('change', function() {
+            displayTask($(this).val());
+        });
+        
+        $('#new-task-btn').on('click', function() {
+            $('#task-select').val('');
+            displayTask(-1);
+        });
+
+        $('#save-todo').on('click', function() {
+            const date = $('#todo-modal').data('date');
+            const title = $('#todo-title-input').val();
+            const description = $('#todo-description').val();
+            const editIndex = $(this).data('edit-index');
+
+            const transaction = db.transaction(["todos"], "readwrite");
+            const objectStore = transaction.objectStore("todos");
+            const request = objectStore.get(date);
+
+            request.onsuccess = e => {
+                let dayData = e.target.result;
+                if (!dayData) {
+                    dayData = { id: date, tasks: [] };
+                }
+
+                const newTask = { title, description };
+
+                if (editIndex > -1) { // Editando tarea existente
+                    dayData.tasks[editIndex] = newTask;
+                } else { // Añadiendo nueva tarea
+                    dayData.tasks.push(newTask);
+                }
+
+                const putRequest = objectStore.put(dayData);
+                putRequest.onsuccess = () => {
+                    $('#todo-modal').hide();
+                    showToast("¡Tarea guardada con éxito!");
+                    generateCalendar(parseInt($('#month-select').val()));
+                };
+                putRequest.onerror = () => showToast("Error al guardar la tarea.");
+            };
+        });
+
+        $('.close').on('click', () => $('#todo-modal').hide());
+        $(window).on('click', e => {
+            if ($(e.target).is('#todo-modal')) $('#todo-modal').hide();
+        });
+
+        function showToast(message) {
+            const toast = $('#toast').text(message).addClass('show');
+            setTimeout(() => toast.removeClass('show'), 3000);
+        }
+
+        initDB();
+    });
+    </script>
+</body>
+</html>
